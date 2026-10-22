@@ -20,6 +20,7 @@ from datetime import datetime
 
 import aiosqlite
 import aiohttp
+from aiohttp import web
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
@@ -38,6 +39,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8668761677:AAGw4pWsnxaLsYVnWAr1xZtQEOnvlLHnX0I")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 DB_PATH = os.getenv("DB_PATH", "bot_data.db")
+PORT = int(os.getenv("PORT", "10000"))
 
 # Setup logging
 logging.basicConfig(
@@ -336,6 +338,20 @@ async def process_callbacks(callback: CallbackQuery):
             if "message is not modified" not in str(e):
                 logging.warning(f"⚠️ Error editing message: {e}")
 
+async def handle_health_check(request):
+    return web.Response(text="OK - Bot is running!")
+
+async def start_dummy_server():
+    """Start simple Web Server for Render Web Service health checks"""
+    app = web.Application()
+    app.router.add_get("/", handle_health_check)
+    app.router.add_get("/health", handle_health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    logging.info(f"🌐 Health check web server running on port {PORT}")
+
 async def start_bot_with_retry():
     retry_count = 0
     while True:
@@ -356,6 +372,7 @@ async def start_bot_with_retry():
 
 async def main():
     await db.init_db()
+    await start_dummy_server()
     await start_bot_with_retry()
 
 if __name__ == "__main__":
