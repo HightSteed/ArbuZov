@@ -354,13 +354,15 @@ async def start_dummy_server():
 
 async def start_bot_with_retry():
     retry_count = 0
+    allowed_updates = ["message", "edited_message", "callback_query", "business_connection", "business_message"]
+    
     while True:
         try:
             logging.info("⏳ Connecting to Telegram API...")
             await bot.delete_webhook(drop_pending_updates=True)
             logging.info("🚀 Bot with Groq LPU AI started successfully!")
             retry_count = 0
-            await dp.start_polling(bot, polling_timeout=10)
+            await dp.start_polling(bot, polling_timeout=10, allowed_updates=allowed_updates)
             break
         except TelegramNetworkError as e:
             retry_count += 1
